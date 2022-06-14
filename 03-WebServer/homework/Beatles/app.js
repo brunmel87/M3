@@ -1,5 +1,6 @@
 var http = require('http');
 var fs   = require('fs');
+const { runInNewContext } = require('vm');
 
 var beatles=[{
   name: "John Lennon",
@@ -22,3 +23,40 @@ var beatles=[{
   profilePic:"http://cp91279.biography.com/BIO_Bio-Shorts_0_Ringo-Starr_SF_HD_768x432-16x9.jpg"
 }
 ]
+
+http.createServer((req, res) => {
+  if(req.url === '/api') {
+    res.writeHead(200, { 'Content-Type':'application/json' });
+    res.end(JSON.stringify(beatles));
+  }
+  if(req.url.substring(0,5) === '/api/' && req.url.lenght > 5) {
+    let findBeatle = req.url.split('/').pop();
+    let foundBeatle = beatles.find((b) => findBeatle === encodeURI(b.name));
+    if(foundBeatle) {
+      res.writeHead(200, { 'Content-Type':'application/json' });
+      res.end(JSON.stringify(foundBeatle));
+    } else {
+      res.writeHead(404, { 'Content-Type':'text/plain' });
+      res.end('No existe ese Beatle');
+    }
+  }
+  if(req.url === '/') {
+    res.writeHead(200, { 'Content-Type':'text/html' });
+    const index = fs.readFileSync(`${__dirname}/index.html`);
+    res.end(index);
+  }
+
+  let findBeatle = req.url.split('/').pop();
+  let foundBeatle = beatles.find((b) => findBeatle === encodeURI(b));
+  if(foundBeatle){
+    res.writeHead(200, {'Content-Type' : 'text/html'});
+    let read = fs.readFileSync(`${__dirname}/beatle.html`, 'utf-8');
+    read = read.replace(/{name}/g, foundBeatle.name);
+    read = read.replace('{birthdate}', foundBeatle.birthdate);
+    read = read.replace('{profilePic}', foundBeatle.profilePic);
+    res.end(read); 
+  } else {
+    res.writeHead(404, { 'Content-Type':'text/plain' });
+    res.end('No existe ese Beatle');
+  }
+}).listen(3000, '127.0.0.1');
